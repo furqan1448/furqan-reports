@@ -70,7 +70,9 @@
 
   requireAuth(async (profile) => {
     renderTopbar(profile, { homeHref: "../dashboard.html" });
-    const reportId = await getOrCreateDraftReport(profile);
+    const params = new URLSearchParams(window.location.search);
+    const requestedId = params.get("id");
+    const reportId = requestedId || await getOrCreateDraftReport(profile);
     const report = await loadReport(reportId);
     renderReport(report);
   });
