@@ -6,7 +6,7 @@
 import { db } from "./firebase/config.js";
 import {
   collection, doc, getDoc, setDoc, updateDoc, query, where,
-  orderBy, limit, getDocs, serverTimestamp
+  getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const REPORTS_COLLECTION = "reports";
@@ -22,16 +22,20 @@ export async function getOrCreateDraftReport(profile) {
     }
   }
 
+  // ملاحظة: تعمّدنا عدم استخدام orderBy هنا لتجنّب الحاجة لإنشاء
+  // فهرس مركّب (composite index) يدويًا في Firebase. بدلاً من ذلك
+  // نجلب كل مسودات هذه المستخدمة (عادة عدد قليل جدًا) ونرتّبها في الكود.
   const q = query(
     collection(db, REPORTS_COLLECTION),
     where("ownerUid", "==", profile.uid),
-    where("status", "==", "draft"),
-    orderBy("updatedAt", "desc"),
-    limit(1)
+    where("status", "==", "draft")
   );
   const snap = await getDocs(q);
   if (!snap.empty) {
-    const id = snap.docs[0].id;
+    const docs = snap.docs
+      .map(d => ({ id: d.id, updatedAt: d.data().updatedAt?.toMillis?.() || 0 }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const id = docs[0].id;
     sessionStorage.setItem(SESSION_KEY, id);
     return id;
   }
@@ -76,7 +80,7 @@ export async function saveSection(reportId, sectionKey, data) {
   });
 }
 
-// استبدال مصفوفة كاملة (تُستخدم للأقسام القابلة للتكرار كالمؤشرات والبرامج)
+// استبدال مصفوفة كاملة (تستخدم للأقسام القابلة للتكرار كالمؤشرات والبرامج)
 export async function saveArraySection(reportId, sectionKey, arrayData) {
   await updateDoc(doc(db, REPORTS_COLLECTION, reportId), {
     [sectionKey]: arrayData,
