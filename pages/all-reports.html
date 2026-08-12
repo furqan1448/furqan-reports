@@ -42,8 +42,10 @@
   import { STATUS_LABELS_AR } from "../js/firebase/workflow.js";
 
   let allReports = [];
+  let currentUid = null;
 
   requireAuth(async (profile) => {
+    currentUid = profile.uid;
     renderTopbar(profile, { homeHref: "../dashboard.html" });
     await loadAll();
     document.getElementById("searchBox").addEventListener("input", (e) => render(e.target.value));
@@ -53,6 +55,9 @@
     const snap = await getDocs(collection(db, "reports"));
     allReports = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
+      // إخفاء مسودات بقية المستخدمات: كل مستخدمة تشوف مسودتها هي بس،
+      // وتشوف تقارير غيرها فقط بعد ما تُرسل (تخرج من حالة "مسودة")
+      .filter(r => (r.status || "draft") !== "draft" || r.ownerUid === currentUid)
       .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
     render("");
   }
