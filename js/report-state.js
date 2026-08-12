@@ -17,9 +17,12 @@ export async function getOrCreateDraftReport(profile) {
   const cached = sessionStorage.getItem(SESSION_KEY);
   if (cached) {
     const existing = await getDoc(doc(db, REPORTS_COLLECTION, cached));
-    if (existing.exists() && existing.data().status === "draft") {
+    // تأكيد إضافي: التقرير المخزّن مؤقتًا يخص نفس المستخدمة الحالية فعلاً
+    // (يمنع مشكلة ظهور مسودة موظفة أخرى عند تبديل الحسابات بنفس الجهاز)
+    if (existing.exists() && existing.data().status === "draft" && existing.data().ownerUid === profile.uid) {
       return cached;
     }
+    sessionStorage.removeItem(SESSION_KEY);
   }
 
   // ملاحظة: تعمّدنا عدم استخدام orderBy هنا لتجنّب الحاجة لإنشاء
