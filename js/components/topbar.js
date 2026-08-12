@@ -3,6 +3,10 @@
 
 import { logout, roleLabel } from "../auth.js";
 
+// مسار الشعار يُحسب تلقائيًا من موقع هذا الملف نفسه بحيث يعمل بشكل صحيح
+// من أي صفحة (سواء في الجذر أو داخل pages/ أو reports/)
+const LOGO_URL = new URL("../../furqan-logo.png", import.meta.url).href;
+
 export function renderTopbar(profile, options = {}) {
   const mount = document.getElementById("topbar-mount");
   if (!mount) return;
@@ -12,7 +16,7 @@ export function renderTopbar(profile, options = {}) {
   mount.innerHTML = `
     <div class="topbar">
       <a href="${homeHref}" class="brand">
-        <span class="gold-dot"></span>
+        <img src="${LOGO_URL}" alt="شعار فرقان" class="brand-logo">
         نظام توثيق الأداء - فرقان
       </a>
       <div class="d-flex align-items-center gap-2">
