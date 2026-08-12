@@ -3,8 +3,12 @@
 
 import { db } from "./config.js";
 import {
-  collection, doc, updateDoc, query, where, getDocs, arrayUnion, serverTimestamp
+  collection, doc, updateDoc, query, where, getDocs, arrayUnion, serverTimestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+// عدّاد مركزي لأرقام التقارير التسلسلية (تقرير رقم ١، ٢، ٣ ...)
+const COUNTER_REF_PATH = ["counters", "reports"];
 
 export const STATUS = {
   DRAFT: "draft",
@@ -45,12 +49,39 @@ async function addHistoryEntry(reportId, entry) {
   });
 }
 
+// ترقيم التقرير تلقائيًا عند إرساله لأول مرة (تقرير رقم ١، ٢، ٣...)
+// نستخدم Transaction لضمان عدم تكرار نفس الرقم لتقريرين في نفس اللحظة.
+async function assignReportNumberIfNeeded(reportId) {
+  const reportRef = doc(db, "reports", reportId);
+  const counterRef = doc(db, COUNTER_REF_PATH[0], COUNTER_REF_PATH[1]);
+  let assignedNumber = null;
+
+  await runTransaction(db, async (tx) => {
+    const reportSnap = await tx.get(reportRef);
+    if (!reportSnap.exists()) throw new Error("التقرير غير موجود");
+    const existing = reportSnap.data().reportNumber;
+    if (existing) {
+      assignedNumber = existing;
+      return; // مُرقّم مسبقًا (مثلاً بعد إعادة إرسال تقرير أُعيد للتعديل)
+    }
+    const counterSnap = await tx.get(counterRef);
+    const current = counterSnap.exists() ? (counterSnap.data().value || 0) : 0;
+    assignedNumber = current + 1;
+    tx.set(counterRef, { value: assignedNumber }, { merge: true });
+    tx.update(reportRef, { reportNumber: assignedNumber });
+  });
+
+  return assignedNumber;
+}
+
 export async function submitForReview(reportId, profile) {
+  const reportNumber = await assignReportNumberIfNeeded(reportId);
   await updateDoc(doc(db, "reports", reportId), {
     status: STATUS.SUBMITTED,
     updatedAt: serverTimestamp()
   });
   await addHistoryEntry(reportId, { action: "submit", by: profile.name || profile.email, role: profile.role, note: "" });
+  return reportNumber;
 }
 
 export async function approveReport(reportId, profile, note = "") {

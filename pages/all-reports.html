@@ -77,7 +77,7 @@
       return `
         <div class="report-row" data-id="${r.id}">
           <div>
-            <div class="title">${bd.unitName || bd.departmentName || "بدون اسم وحدة"}</div>
+            <div class="title">${r.reportNumber ? `تقرير رقم ${r.reportNumber} — ` : ""}${bd.unitName || bd.departmentName || "بدون اسم وحدة"}</div>
             <div class="meta">
               معدة التقرير: ${bd.preparerName || "-"} ·
               الفترة: ${bd.periodType || "-"} ${bd.hijriYear || ""} ·
