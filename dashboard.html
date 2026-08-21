@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -21,6 +22,12 @@
 
   <div class="cards-grid" id="cardsGrid"></div>
 
+  <div class="page-header mt-4" id="sharedHeader" style="display:none;">
+    <h2><i class="fa-solid fa-inbox"></i> تقارير أُرسلت إليّ</h2>
+    <p>تقارير شاركتها معك زميلاتك عبر بريدك الإلكتروني.</p>
+  </div>
+  <div id="sharedList"></div>
+
   <div class="page-header mt-4">
     <h2>أدوات إضافية</h2>
   </div>
@@ -32,17 +39,42 @@
   import { renderTopbar } from "./js/components/topbar.js";
   import { SECTIONS } from "./js/components/sections-config.js";
   import { CAN_APPROVE, ROLE_LANDING_PAGE } from "./js/firebase/roles.js";
+  import { listReportsSharedWithMe } from "./js/report-state.js";
 
   requireAuth((profile) => {
     renderTopbar(profile, { homeHref: "dashboard.html" });
     renderCards();
     renderExtraCards(profile);
+    renderSharedReports(profile);
   });
+
+  async function renderSharedReports(profile) {
+    if (!profile.email) return;
+    const shared = await listReportsSharedWithMe(profile.email);
+    if (shared.length === 0) return;
+    document.getElementById("sharedHeader").style.display = "block";
+    document.getElementById("sharedList").innerHTML = shared.map(r => {
+      const bd = r.basicData || {};
+      const title = r.reportNumber ? `تقرير رقم ${r.reportNumber}` : "تقرير";
+      const sub = bd.unitName || bd.departmentName || "بدون اسم وحدة";
+      return `
+        <a class="section-card" style="display:flex;align-items:center;gap:14px;text-align:right;margin-bottom:10px;"
+           href="reports/print-report.html?id=${r.id}">
+          <div class="icon-box"><i class="fa-solid fa-file-lines"></i></div>
+          <div>
+            <h3 style="margin:0;">${title}</h3>
+            <p class="desc" style="margin:0;">${sub} · من: ${bd.preparerName || "-"}</p>
+          </div>
+        </a>`;
+    }).join("");
+  }
 
   function renderExtraCards(profile) {
     const extras = [
       { title: "التحليل الذكي", desc: "توليد ملخص تنفيذي بالذكاء الاصطناعي", icon: "fa-wand-magic-sparkles", page: "pages/ai-analysis.html" },
-      { title: "تقرير PDF", desc: "عرض التقرير كاملًا وطباعته", icon: "fa-file-pdf", page: "reports/print-report.html" }
+      { title: "تقرير PDF", desc: "عرض التقرير كاملًا وطباعته", icon: "fa-file-pdf", page: "reports/print-report.html" },
+      { title: "كل التقارير", desc: "استعراض كل التقارير المُرسلة وحالتها", icon: "fa-folder-open", page: "pages/all-reports.html" },
+      { title: "المراجعة والاعتماد", desc: "إرسال التقرير الحالي للاعتماد ومتابعة حالته", icon: "fa-signature", page: "pages/review-approval.html" }
     ];
     if (CAN_APPROVE[profile.role]) {
       extras.push({ title: "لوحة الاعتماد", desc: "مراجعة التقارير بانتظار اعتمادك", icon: "fa-clipboard-check", page: ROLE_LANDING_PAGE[profile.role] });
