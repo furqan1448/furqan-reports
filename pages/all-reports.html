@@ -42,23 +42,17 @@
   import { STATUS_LABELS_AR } from "../js/firebase/workflow.js";
 
   let allReports = [];
-  let currentUid = null;
 
   requireAuth(async (profile) => {
-    currentUid = profile.uid;
     renderTopbar(profile, { homeHref: "../dashboard.html" });
-    await loadAll(profile);
+    await loadAll();
     document.getElementById("searchBox").addEventListener("input", (e) => render(e.target.value));
   });
 
-  async function loadAll(profile) {
-    const isAdmin = profile.role === "education_admin";
+  async function loadAll() {
     const snap = await getDocs(collection(db, "reports"));
     allReports = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      // "كل التقارير" (كل الوحدات، كل الحالات) يشوفها الأدمن (education_admin) بس.
-      // أي دور ثاني يشوف تقاريره هو فقط بكل حالاتها.
-      .filter(r => isAdmin || r.ownerUid === currentUid)
       .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
     render("");
   }

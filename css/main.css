@@ -63,12 +63,10 @@ a { text-decoration: none; color: inherit; }
   font-size: 1.15rem;
 }
 
-.topbar .brand .brand-logo {
-  width: 30px; height: 30px;
+.topbar .brand .gold-dot {
+  width: 10px; height: 10px;
   border-radius: 50%;
-  background: #fff;
-  padding: 3px;
-  object-fit: contain;
+  background: var(--gold-500);
 }
 
 .topbar .user-chip {
@@ -124,22 +122,16 @@ a { text-decoration: none; color: inherit; }
 }
 
 .login-card .header .logo-circle {
-  width: 74px; height: 74px;
+  width: 64px; height: 64px;
   border-radius: 50%;
-  background: #fff;
+  background: rgba(255,255,255,0.12);
   border: 2px solid var(--gold-400);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 12px;
-  overflow: hidden;
-  padding: 6px;
-}
-
-.login-card .header .logo-circle img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  font-size: 1.6rem;
+  color: var(--gold-400);
 }
 
 .login-card .header h1 {

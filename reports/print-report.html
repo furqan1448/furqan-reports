@@ -12,8 +12,7 @@
   body { background: #fff; }
   .report-doc { max-width: 900px; margin: 0 auto; padding: 30px; }
   .report-header { display:flex; align-items:center; justify-content:space-between; border-bottom:4px solid var(--gold-500); padding-bottom:18px; margin-bottom:24px; }
-  .report-header .logo-box { width:70px; height:70px; border-radius:50%; background:#fff; border:2px solid var(--gold-400); display:flex; align-items:center; justify-content:center; overflow:hidden; padding:5px; }
-  .report-header .logo-box img { width:100%; height:100%; object-fit:contain; }
+  .report-header .logo-box { width:70px; height:70px; border-radius:50%; background:linear-gradient(135deg,var(--maroon-900),var(--maroon-700)); color:var(--gold-400); display:flex; align-items:center; justify-content:center; font-size:1.6rem; }
   .report-header .titles { text-align:left; }
   .report-header h1 { color:var(--maroon-900); font-size:1.3rem; margin:0; }
   .report-header p { color:var(--text-muted); font-size:.85rem; margin:0; }
@@ -109,7 +108,7 @@
 
     document.getElementById("reportDoc").innerHTML = `
       <div class="report-header">
-        <div class="logo-box"><img src="../furqan-logo.png" alt="شعار جمعية فرقان"></div>
+        <div class="logo-box"><i class="fa-solid fa-book-quran"></i></div>
         <div class="titles">
           <h1>تقرير أداء دوري ${r.reportNumber ? `<span style="color:var(--gold-500);">رقم ${r.reportNumber}</span>` : ""}</h1>
           <p>جمعية فرقان لتحفيظ القرآن الكريم - الطائف</p>
