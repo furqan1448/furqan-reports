@@ -3,20 +3,16 @@
 
 import { db } from "./config.js";
 import {
-  collection, doc, updateDoc, query, where, getDocs, arrayUnion, serverTimestamp,
-  runTransaction
+  collection, doc, updateDoc, query, where, orderBy, getDocs, arrayUnion, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-
-// عدّاد مركزي لأرقام التقارير التسلسلية (تقرير رقم ١، ٢، ٣ ...)
-const COUNTER_REF_PATH = ["counters", "reports"];
 
 export const STATUS = {
   DRAFT: "draft",
-  SUBMITTED: "submitted",
-  UNIT_APPROVED: "unit_approved",
-  DEPT_APPROVED: "dept_approved",
-  APPROVED: "approved",
-  RETURNED: "returned",
+  SUBMITTED: "submitted",           // بانتظار مديرة الوحدة
+  UNIT_APPROVED: "unit_approved",   // بانتظار مديرة القسم
+  DEPT_APPROVED: "dept_approved",   // بانتظار إدارة التعليم
+  APPROVED: "approved",             // معتمد نهائيًا
+  RETURNED: "returned",             // أُعيد للتعديل
   REJECTED: "rejected"
 };
 
@@ -30,12 +26,14 @@ export const STATUS_LABELS_AR = {
   rejected: "مرفوض"
 };
 
+// الحالة اللي تنتظرها كل دور
 export const STATUS_FOR_ROLE = {
   unit_manager: STATUS.SUBMITTED,
   dept_manager: STATUS.UNIT_APPROVED,
   education_admin: STATUS.DEPT_APPROVED
 };
 
+// الحالة التالية بعد اعتماد كل دور
 export const NEXT_STATUS = {
   unit_manager: STATUS.UNIT_APPROVED,
   dept_manager: STATUS.DEPT_APPROVED,
@@ -49,39 +47,12 @@ async function addHistoryEntry(reportId, entry) {
   });
 }
 
-// ترقيم التقرير تلقائيًا عند إرساله لأول مرة (تقرير رقم ١، ٢، ٣...)
-// نستخدم Transaction لضمان عدم تكرار نفس الرقم لتقريرين في نفس اللحظة.
-async function assignReportNumberIfNeeded(reportId) {
-  const reportRef = doc(db, "reports", reportId);
-  const counterRef = doc(db, COUNTER_REF_PATH[0], COUNTER_REF_PATH[1]);
-  let assignedNumber = null;
-
-  await runTransaction(db, async (tx) => {
-    const reportSnap = await tx.get(reportRef);
-    if (!reportSnap.exists()) throw new Error("التقرير غير موجود");
-    const existing = reportSnap.data().reportNumber;
-    if (existing) {
-      assignedNumber = existing;
-      return; // مُرقّم مسبقًا (مثلاً بعد إعادة إرسال تقرير أُعيد للتعديل)
-    }
-    const counterSnap = await tx.get(counterRef);
-    const current = counterSnap.exists() ? (counterSnap.data().value || 0) : 0;
-    assignedNumber = current + 1;
-    tx.set(counterRef, { value: assignedNumber }, { merge: true });
-    tx.update(reportRef, { reportNumber: assignedNumber });
-  });
-
-  return assignedNumber;
-}
-
 export async function submitForReview(reportId, profile) {
-  const reportNumber = await assignReportNumberIfNeeded(reportId);
   await updateDoc(doc(db, "reports", reportId), {
     status: STATUS.SUBMITTED,
     updatedAt: serverTimestamp()
   });
   await addHistoryEntry(reportId, { action: "submit", by: profile.name || profile.email, role: profile.role, note: "" });
-  return reportNumber;
 }
 
 export async function approveReport(reportId, profile, note = "") {
@@ -111,16 +82,14 @@ export async function rejectReport(reportId, profile, note) {
 }
 
 // جلب التقارير التي تنتظر اعتماد دور معين
-// (بدون orderBy لتفادي الحاجة لفهرس مركّب؛ الترتيب يتم في الكود بعد الجلب)
 export async function listReportsPendingForRole(role) {
   const targetStatus = STATUS_FOR_ROLE[role];
   if (!targetStatus) return [];
   const q = query(
     collection(db, "reports"),
-    where("status", "==", targetStatus)
+    where("status", "==", targetStatus),
+    orderBy("updatedAt", "desc")
   );
   const snap = await getDocs(q);
-  return snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
