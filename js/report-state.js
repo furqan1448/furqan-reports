@@ -6,7 +6,7 @@
 import { db } from "./firebase/config.js";
 import {
   collection, doc, getDoc, setDoc, updateDoc, query, where,
-  orderBy, limit, getDocs, serverTimestamp
+  getDocs, serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const REPORTS_COLLECTION = "reports";
@@ -22,16 +22,20 @@ export async function getOrCreateDraftReport(profile) {
     }
   }
 
+  // ملاحظة: تعمّدنا عدم استخدام orderBy هنا لتجنّب الحاجة لإنشاء
+  // فهرس مركّب (composite index) يدويًا في Firebase. بدلاً من ذلك
+  // نجلب كل مسودات هذه المستخدمة (عادة عدد قليل جدًا) ونرتّبها في الكود.
   const q = query(
     collection(db, REPORTS_COLLECTION),
     where("ownerUid", "==", profile.uid),
-    where("status", "==", "draft"),
-    orderBy("updatedAt", "desc"),
-    limit(1)
+    where("status", "==", "draft")
   );
   const snap = await getDocs(q);
   if (!snap.empty) {
-    const id = snap.docs[0].id;
+    const docs = snap.docs
+      .map(d => ({ id: d.id, updatedAt: d.data().updatedAt?.toMillis?.() || 0 }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const id = docs[0].id;
     sessionStorage.setItem(SESSION_KEY, id);
     return id;
   }
@@ -41,6 +45,8 @@ export async function getOrCreateDraftReport(profile) {
     ownerUid: profile.uid,
     ownerName: profile.name || "",
     status: "draft",
+    reportNumber: null,
+    sharedWith: [],
     basicData: {},
     goals: {},
     indicators: [],
@@ -76,7 +82,7 @@ export async function saveSection(reportId, sectionKey, data) {
   });
 }
 
-// استبدال مصفوفة كاملة (تُستخدم للأقسام القابلة للتكرار كالمؤشرات والبرامج)
+// استبدال مصفوفة كاملة (تستخدم للأقسام القابلة للتكرار كالمؤشرات والبرامج)
 export async function saveArraySection(reportId, sectionKey, arrayData) {
   await updateDoc(doc(db, REPORTS_COLLECTION, reportId), {
     [sectionKey]: arrayData,
@@ -86,4 +92,31 @@ export async function saveArraySection(reportId, sectionKey, arrayData) {
 
 export function clearActiveReport() {
   sessionStorage.removeItem(SESSION_KEY);
+}
+
+// إرسال (مشاركة) التقرير مع مستخدمة أخرى عبر بريدها الإلكتروني.
+// لا يُرسل بريدًا فعليًا؛ فقط يُضيف البريد إلى قائمة sharedWith داخل مستند
+// التقرير، بحيث تجده صاحبة هذا البريد عند دخولها للنظام.
+export async function shareReportWithEmail(reportId, email) {
+  const clean = (email || "").trim().toLowerCase();
+  if (!clean) throw new Error("أدخلي بريدًا إلكترونيًا صحيحًا");
+  await updateDoc(doc(db, REPORTS_COLLECTION, reportId), {
+    sharedWith: arrayUnion(clean),
+    updatedAt: serverTimestamp()
+  });
+  return clean;
+}
+
+// جلب كل التقارير التي أُرسلت لبريد إلكتروني معيّن (بريد المستخدمة الحالية)
+export async function listReportsSharedWithMe(email) {
+  const clean = (email || "").trim().toLowerCase();
+  if (!clean) return [];
+  const q = query(
+    collection(db, REPORTS_COLLECTION),
+    where("sharedWith", "array-contains", clean)
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
 }

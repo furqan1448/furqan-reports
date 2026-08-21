@@ -72,9 +72,7 @@
   function renderExtraCards(profile) {
     const extras = [
       { title: "التحليل الذكي", desc: "توليد ملخص تنفيذي بالذكاء الاصطناعي", icon: "fa-wand-magic-sparkles", page: "pages/ai-analysis.html" },
-      { title: "تقرير PDF", desc: "عرض التقرير كاملًا وطباعته", icon: "fa-file-pdf", page: "reports/print-report.html" },
-      { title: "كل التقارير", desc: "استعراض كل التقارير المُرسلة وحالتها", icon: "fa-folder-open", page: "pages/all-reports.html" },
-      { title: "المراجعة والاعتماد", desc: "إرسال التقرير الحالي للاعتماد ومتابعة حالته", icon: "fa-signature", page: "pages/review-approval.html" }
+      { title: "تقرير PDF", desc: "عرض التقرير كاملًا وطباعته", icon: "fa-file-pdf", page: "reports/print-report.html" }
     ];
     if (CAN_APPROVE[profile.role]) {
       extras.push({ title: "لوحة الاعتماد", desc: "مراجعة التقارير بانتظار اعتمادك", icon: "fa-clipboard-check", page: ROLE_LANDING_PAGE[profile.role] });

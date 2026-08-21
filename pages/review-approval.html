@@ -30,7 +30,7 @@
 <div class="page-wrap" style="max-width:800px;">
   <div class="page-header">
     <p><a href="../dashboard.html"><i class="fa-solid fa-arrow-right"></i> رجوع للوحة التحكم</a></p>
-    <h2><i class="fa-solid fa-signature"></i> المراجعة والاعتماد</h2>
+    <h2><i class="fa-solid fa-signature"></i> المراجعة والاعتماد <span id="reportNumberBadge"></span></h2>
   </div>
 
   <div class="status-banner" id="statusBanner"></div>
@@ -86,6 +86,8 @@
   });
 
   function renderStatus() {
+    const badge = document.getElementById("reportNumberBadge");
+    if (badge) badge.textContent = report?.reportNumber ? `— تقرير رقم ${report.reportNumber}` : "";
     const status = report?.status || "draft";
     const banner = document.getElementById("statusBanner");
     banner.className = `status-banner ${status}`;
@@ -147,8 +149,8 @@
 
   async function onSubmit() {
     try {
-      await submitForReview(reportId, profileRef);
-      showSaveToast("تم إرسال التقرير للاعتماد بنجاح");
+      const number = await submitForReview(reportId, profileRef);
+      showSaveToast(number ? `تم إرسال التقرير رقم ${number} للاعتماد بنجاح` : "تم إرسال التقرير للاعتماد بنجاح");
       report = await loadReport(reportId);
       renderStatus();
       renderHistory();
