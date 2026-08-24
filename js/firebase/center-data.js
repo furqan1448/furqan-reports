@@ -1,49 +1,31 @@
-// js/firebase/center-data.js
-// بيانات المراكز: كل مديرة مركز عندها مستند واحد تحدّثه بأرقام مركزها
-// (عدد المعلمات، عدد الدارسات، عدد الخاتمات، وأي أرقام إضافية تضيفها لاحقًا).
-// الرؤية الكاملة لكل المراكز مقصورة على دور "إدارة التعليم" (انظر firestore.rules).
+import { db, auth } from './config.js';
+import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { db } from "./config.js";
-import {
-  collection, doc, getDoc, setDoc, getDocs, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// حفظ التقرير في Firestore باسم مستند يساوي uid الموظفة
+export async function saveCenterDataToFirebase(data) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("يجب تسجيل الدخول أولاً");
 
-const COLLECTION = "centerReports";
-
-// تُرجع مستند مركز هذه المديرة (تُنشئه فارغًا أول مرة)
-export async function getOrCreateCenterDoc(profile) {
-  const ref = doc(db, COLLECTION, profile.uid);
-  const snap = await getDoc(ref);
-  if (snap.exists()) return { id: snap.id, ...snap.data() };
-
-  const initial = {
-    ownerUid: profile.uid,
-    centerName: profile.name || "",
-    teachersCount: null,
-    studentsCount: null,
-    completersCount: null,
-    extraStats: [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  };
-  await setDoc(ref, initial);
-  return { id: profile.uid, ...initial };
-}
-
-// حفظ/تحديث بيانات مركز هذه المديرة
-export async function saveCenterData(profile, data) {
-  const ref = doc(db, COLLECTION, profile.uid);
-  await setDoc(ref, {
-    ownerUid: profile.uid,
+  const reportRef = doc(db, "reports", user.uid);
+  await setDoc(reportRef, {
     ...data,
-    updatedAt: serverTimestamp()
+    userId: user.uid,
+    userEmail: user.email,
+    updatedAt: new Date()
   }, { merge: true });
 }
 
-// جلب كل المراكز (لصفحة "بيانات المراكز" - إدارة التعليم فقط، مسموح لها بقواعد Firestore)
-export async function listAllCenters() {
-  const snap = await getDocs(collection(db, COLLECTION));
-  return snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => (a.centerName || "").localeCompare(b.centerName || "", "ar"));
+// جلب التقرير الخاص بالموظفة فقط من Firestore
+export async function getCenterDataFromFirebase() {
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  const reportRef = doc(db, "reports", user.uid);
+  const docSnap = await getDoc(reportRef);
+
+  if (docSnap.exists()) {
+    return docSnap.data();
+  } else {
+    return null;
+  }
 }
