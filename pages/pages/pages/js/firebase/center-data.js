@@ -6,7 +6,8 @@ export const ROLES = {
   UNIT_OFFICER: "unit_officer",         // مسؤولة الوحدة
   UNIT_MANAGER: "unit_manager",         // مديرة الوحدة
   DEPT_MANAGER: "dept_manager",         // مديرة القسم
-  EDUCATION_ADMIN: "education_admin"    // إدارة التعليم
+  EDUCATION_ADMIN: "education_admin",   // إدارة التعليم
+  CENTER_MANAGER: "center_manager"      // مديرة مركز
 };
 
 export const ROLE_LABELS = {
@@ -14,7 +15,8 @@ export const ROLE_LABELS = {
   [ROLES.UNIT_OFFICER]: "مسؤولة الوحدة",
   [ROLES.UNIT_MANAGER]: "مديرة الوحدة",
   [ROLES.DEPT_MANAGER]: "مديرة القسم",
-  [ROLES.EDUCATION_ADMIN]: "إدارة التعليم"
+  [ROLES.EDUCATION_ADMIN]: "إدارة التعليم",
+  [ROLES.CENTER_MANAGER]: "مديرة مركز"
 };
 
 // كل دور يفتح على الشاشة التالية بعد الدخول
@@ -23,7 +25,8 @@ export const ROLE_LANDING_PAGE = {
   [ROLES.UNIT_OFFICER]: "dashboard.html",
   [ROLES.UNIT_MANAGER]: "pages/unit-review.html",
   [ROLES.DEPT_MANAGER]: "pages/department-review.html",
-  [ROLES.EDUCATION_ADMIN]: "pages/admin-dashboard.html"
+  [ROLES.EDUCATION_ADMIN]: "pages/admin-dashboard.html",
+  [ROLES.CENTER_MANAGER]: "pages/center-data.html"
 };
 
 // صلاحيات كل دور فيما يخص مسار الاعتماد
@@ -32,7 +35,13 @@ export const CAN_APPROVE = {
   [ROLES.UNIT_OFFICER]: false,
   [ROLES.UNIT_MANAGER]: true,   // تراجع صحة الأرقام والشواهد لتقارير الوحدة
   [ROLES.DEPT_MANAGER]: true,   // تعتمد أبرز النتائج والتوصيات لتقارير القسم
-  [ROLES.EDUCATION_ADMIN]: true // تعتمد التقرير النهائي
+  [ROLES.EDUCATION_ADMIN]: true, // تعتمد التقرير النهائي
+  [ROLES.CENTER_MANAGER]: false
+};
+
+// الأدوار المسموح لها برؤية بيانات كل المراكز مجمّعة (غير مديرة المركز نفسها)
+export const CAN_VIEW_CENTERS_OVERVIEW = {
+  [ROLES.EDUCATION_ADMIN]: true
 };
 
 export function getUserRole(userDoc) {
