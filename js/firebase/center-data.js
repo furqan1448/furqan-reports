@@ -3,29 +3,40 @@ import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/f
 
 // حفظ التقرير في Firestore باسم مستند يساوي uid الموظفة
 export async function saveCenterDataToFirebase(data) {
-  const user = auth.currentUser;
-  if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+  try {
+    const user = auth ? auth.currentUser : null;
+    if (!user) {
+      console.warn("لم يتم تسجيل الدخول، سيتم الحفظ محلياً فقط.");
+      return;
+    }
 
-  const reportRef = doc(db, "reports", user.uid);
-  await setDoc(reportRef, {
-    ...data,
-    userId: user.uid,
-    userEmail: user.email,
-    updatedAt: new Date()
-  }, { merge: true });
+    const reportRef = doc(db, "reports", user.uid);
+    await setDoc(reportRef, {
+      ...data,
+      userId: user.uid,
+      userEmail: user.email || '',
+      updatedAt: new Date()
+    }, { merge: true });
+  } catch (error) {
+    console.error("خطأ أثناء الحفظ في قاعدة البيانات:", error);
+  }
 }
 
 // جلب التقرير الخاص بالموظفة فقط من Firestore
 export async function getCenterDataFromFirebase() {
-  const user = auth.currentUser;
-  if (!user) return null;
+  try {
+    const user = auth ? auth.currentUser : null;
+    if (!user) return null;
 
-  const reportRef = doc(db, "reports", user.uid);
-  const docSnap = await getDoc(reportRef);
+    const reportRef = doc(db, "reports", user.uid);
+    const docSnap = await getDoc(reportRef);
 
-  if (docSnap.exists()) {
-    return docSnap.data();
-  } else {
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return null;
+  } catch (error) {
+    console.error("خطأ أثناء جلب البيانات من قاعدة البيانات:", error);
     return null;
   }
 }
