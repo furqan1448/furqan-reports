@@ -12,5 +12,19 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow read, write: if request.auth != null;
     }
+
+    // بيانات المراكز: مديرة المركز تقرأ/تكتب بيانات مركزها فقط،
+    // وإدارة التعليم فقط تقدر تشوف كل المراكز مجمّعة (الموظفات ممنوعات تمامًا)
+    match /centerReports/{centerId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == centerId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'education_admin'
+      );
+      allow create, update: if request.auth != null && (
+        request.auth.uid == centerId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'education_admin'
+      );
+      allow delete: if false;
+    }
   }
 }
