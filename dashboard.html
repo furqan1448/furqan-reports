@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -32,7 +31,7 @@
   import { requireAuth } from "./js/auth.js";
   import { renderTopbar } from "./js/components/topbar.js";
   import { SECTIONS } from "./js/components/sections-config.js";
-  import { CAN_APPROVE, ROLE_LANDING_PAGE } from "./js/firebase/roles.js";
+  import { CAN_APPROVE, CAN_VIEW_CENTERS_OVERVIEW, ROLE_LANDING_PAGE } from "./js/firebase/roles.js";
 
   requireAuth((profile) => {
     renderTopbar(profile, { homeHref: "dashboard.html" });
@@ -47,6 +46,9 @@
     ];
     if (CAN_APPROVE[profile.role]) {
       extras.push({ title: "لوحة الاعتماد", desc: "مراجعة التقارير بانتظار اعتمادك", icon: "fa-clipboard-check", page: ROLE_LANDING_PAGE[profile.role] });
+    }
+    if (CAN_VIEW_CENTERS_OVERVIEW[profile.role]) {
+      extras.push({ title: "بيانات المراكز", desc: "عدد المعلمات والدارسات والخاتمات لكل مركز", icon: "fa-building-columns", page: "pages/centers-overview.html" });
     }
     document.getElementById("extraGrid").innerHTML = extras.map(s => `
       <a class="section-card" href="${s.page}">
