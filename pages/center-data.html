@@ -1,0 +1,97 @@
+// js/firebase/center-data.js
+// بيانات المراكز: كل مديرة مركز عندها مستند واحد تحدّثه بأرقام مركزها
+// (عدد المعلمات، عدد الدارسات، عدد الخاتمات، وأي أرقام إضافية تضيفها لاحقًا).
+// الرؤية الكاملة لكل المراكز مقصورة على دور "إدارة التعليم" (انظر firestore.rules).
+
+import { db } from "./config.js";
+import {
+  collection, doc, getDoc, setDoc, getDocs, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const COLLECTION = "centerReports";
+
+// تُرجع مستند مركز هذه المديرة (تُنشئه فارغًا أول مرة)
+export async function getOrCreateCenterDoc(profile) {
+  const ref = doc(db, COLLECTION, profile.uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return { id: snap.id, ...snap.data() };
+
+  const initial = {
+    ownerUid: profile.uid,
+    centerName: profile.name || "",
+    teachersCount: null,
+    studentsCount: null,
+    completersCount: null,
+    extraStats: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+  await setDoc(ref, initial);
+  return { id: profile.uid, ...initial };
+}
+
+// حفظ/تحديث بيانات مركز هذه المديرة
+export async function saveCenterData(profile, data) {
+  const ref = doc(db, COLLECTION, profile.uid);
+  await setDoc(ref, {
+    ownerUid: profile.uid,
+    ...data,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+// جلب كل المراكز (لصفحة "بيانات المراكز" - إدارة التعليم فقط، مسموح لها بقواعد Firestore)
+export async function listAllCenters() {
+  const snap = await getDocs(collection(db, COLLECTION));
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.centerName || "").localeCompare(b.centerName || "", "ar"));
+}// js/firebase/center-data.js
+// بيانات المراكز: كل مديرة مركز عندها مستند واحد تحدّثه بأرقام مركزها
+// (عدد المعلمات، عدد الدارسات، عدد الخاتمات، وأي أرقام إضافية تضيفها لاحقًا).
+// الرؤية الكاملة لكل المراكز مقصورة على دور "إدارة التعليم" (انظر firestore.rules).
+
+import { db } from "./config.js";
+import {
+  collection, doc, getDoc, setDoc, getDocs, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const COLLECTION = "centerReports";
+
+// تُرجع مستند مركز هذه المديرة (تُنشئه فارغًا أول مرة)
+export async function getOrCreateCenterDoc(profile) {
+  const ref = doc(db, COLLECTION, profile.uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return { id: snap.id, ...snap.data() };
+
+  const initial = {
+    ownerUid: profile.uid,
+    centerName: profile.name || "",
+    teachersCount: null,
+    studentsCount: null,
+    completersCount: null,
+    extraStats: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+  await setDoc(ref, initial);
+  return { id: profile.uid, ...initial };
+}
+
+// حفظ/تحديث بيانات مركز هذه المديرة
+export async function saveCenterData(profile, data) {
+  const ref = doc(db, COLLECTION, profile.uid);
+  await setDoc(ref, {
+    ownerUid: profile.uid,
+    ...data,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+// جلب كل المراكز (لصفحة "بيانات المراكز" - إدارة التعليم فقط، مسموح لها بقواعد Firestore)
+export async function listAllCenters() {
+  const snap = await getDocs(collection(db, COLLECTION));
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.centerName || "").localeCompare(b.centerName || "", "ar"));
+}
