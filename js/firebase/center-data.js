@@ -10,10 +10,11 @@ export async function saveCenterDataToFirebase(data) {
     await setDoc(reportRef, {
       ...data,
       userId: user.uid,
+      userEmail: user.email || '',
       updatedAt: new Date()
     }, { merge: true });
   } catch (error) {
-    console.error("خطأ الحفظ:", error);
+    console.error("خطأ أثناء حفظ التقرير في Firestore:", error);
   }
 }
 
@@ -30,7 +31,7 @@ export async function getCenterDataFromFirebase() {
     }
     return null;
   } catch (error) {
-    console.error("خطأ الجلب:", error);
+    console.error("خطأ أثناء جلب التقرير من Firestore:", error);
     return null;
   }
 }
