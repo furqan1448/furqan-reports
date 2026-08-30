@@ -38,7 +38,11 @@ export async function login(email, password) {
   if (!userDoc.exists()) {
     throw new Error("لا يوجد حساب مرتبط بهذا المستخدم في النظام. تواصلي مع إدارة النظام.");
   }
-  return { uid: cred.user.uid, ...userDoc.data() };
+  // ملاحظة مهمة: uid لازم يُكتب بعد ...userDoc.data() وليس قبله،
+  // حتى لو صار فيه حقل اسمه "uid" بالغلط داخل مستند المستخدمة نفسه
+  // (مثلاً بسبب نسخ مستند كقالب)، يبقى الـ uid الحقيقي القادم من
+  // Firebase Authentication هو الفاصل، ولا تختلط بيانات موظفة بموظفة ثانية.
+  return { ...userDoc.data(), uid: cred.user.uid };
 }
 
 // تسجيل الخروج
@@ -61,7 +65,7 @@ export function requireAuth(onReady) {
       window.location.href = loginPageUrl();
       return;
     }
-    const profile = { uid: user.uid, ...userDoc.data() };
+    const profile = { ...userDoc.data(), uid: user.uid };
     onReady(profile);
   });
 }
