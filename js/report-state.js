@@ -6,7 +6,7 @@
 import { db } from "./firebase/config.js";
 import {
   collection, doc, getDoc, setDoc, updateDoc, query, where,
-  getDocs, serverTimestamp
+  getDocs, serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const REPORTS_COLLECTION = "reports";
@@ -17,9 +17,12 @@ export async function getOrCreateDraftReport(profile) {
   const cached = sessionStorage.getItem(SESSION_KEY);
   if (cached) {
     const existing = await getDoc(doc(db, REPORTS_COLLECTION, cached));
-    if (existing.exists() && existing.data().status === "draft") {
+    // تأكيد إضافي: التقرير المخزّن مؤقتًا يخص نفس المستخدمة الحالية فعلاً
+    // (يمنع مشكلة ظهور مسودة موظفة أخرى عند تبديل الحسابات بنفس الجهاز)
+    if (existing.exists() && existing.data().status === "draft" && existing.data().ownerUid === profile.uid) {
       return cached;
     }
+    sessionStorage.removeItem(SESSION_KEY);
   }
 
   // ملاحظة: تعمّدنا عدم استخدام orderBy هنا لتجنّب الحاجة لإنشاء
@@ -45,6 +48,8 @@ export async function getOrCreateDraftReport(profile) {
     ownerUid: profile.uid,
     ownerName: profile.name || "",
     status: "draft",
+    reportNumber: null,
+    sharedWith: [],
     basicData: {},
     goals: {},
     indicators: [],
@@ -90,4 +95,31 @@ export async function saveArraySection(reportId, sectionKey, arrayData) {
 
 export function clearActiveReport() {
   sessionStorage.removeItem(SESSION_KEY);
+}
+
+// إرسال (مشاركة) التقرير مع مستخدمة أخرى عبر بريدها الإلكتروني.
+// لا يُرسل بريدًا فعليًا؛ فقط يُضيف البريد إلى قائمة sharedWith داخل مستند
+// التقرير، بحيث تجده صاحبة هذا البريد عند دخولها للنظام.
+export async function shareReportWithEmail(reportId, email) {
+  const clean = (email || "").trim().toLowerCase();
+  if (!clean) throw new Error("أدخلي بريدًا إلكترونيًا صحيحًا");
+  await updateDoc(doc(db, REPORTS_COLLECTION, reportId), {
+    sharedWith: arrayUnion(clean),
+    updatedAt: serverTimestamp()
+  });
+  return clean;
+}
+
+// جلب كل التقارير التي أُرسلت لبريد إلكتروني معيّن (بريد المستخدمة الحالية)
+export async function listReportsSharedWithMe(email) {
+  const clean = (email || "").trim().toLowerCase();
+  if (!clean) return [];
+  const q = query(
+    collection(db, REPORTS_COLLECTION),
+    where("sharedWith", "array-contains", clean)
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
 }
